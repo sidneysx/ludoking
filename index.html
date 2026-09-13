@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Ludo Online</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 
@@ -22,8 +22,10 @@
 
 <div id="gameScreen">
   <div id="boardWrap">
-    <canvas id="board" width="600" height="600"></canvas>
-    <div id="pawnLayer"></div>
+    <div id="boardRotate">
+      <canvas id="board" width="600" height="600"></canvas>
+      <div id="pawnLayer"></div>
+    </div>
   </div>
   <div id="sidebar" class="card">
     <div class="room-code">Sala: <b id="roomCodeLabel"></b></div>
@@ -36,7 +38,6 @@
       <div class="players-list" id="playersList"></div>
       <div id="turnMsg"></div>
       <div class="dice-area">
-        <div id="diceFace">–</div>
         <button class="btn btn-primary" id="rollBtn" style="flex:1;">Rolar dado</button>
       </div>
       <p class="footnote" id="hintMsg"></p>
@@ -49,6 +50,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/game.js"></script>
+<script src="js/game.js?v=4"></script>
 </body>
 </html>

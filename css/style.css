@@ -39,16 +39,19 @@ h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 
 #gameScreen{display:none; gap:20px; align-items:flex-start; flex-wrap:wrap; justify-content:center;}
 #boardWrap{position:relative; width:600px; height:600px; flex-shrink:0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.1), 0 12px 30px rgba(0,0,0,.1);}
+#boardRotate{position:absolute; top:0; left:0; width:600px; height:600px; transition:transform .5s ease;}
 #board{position:absolute; top:0; left:0;}
 #pawnLayer{position:absolute; top:0; left:0; width:600px; height:600px;}
 .pawn{
   position:absolute; width:22px; height:22px; border-radius:50%;
   border:2.5px solid rgba(0,0,0,.25); transform:translate(-50%,-50%);
   box-shadow:0 2px 3px rgba(0,0,0,.25);
-  transition:left .35s ease, top .35s ease;
+  transition:left .16s ease, top .16s ease;
 }
 .pawn.movable{cursor:pointer; box-shadow:0 0 0 4px rgba(0,0,0,.12), 0 2px 4px rgba(0,0,0,.3); animation:pulse 1s infinite;}
+.pawn.hopping{animation:hopBounce .16s ease;}
 @keyframes pulse{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.18);}}
+@keyframes hopBounce{0%{transform:translate(-50%,-50%) scale(1);}45%{transform:translate(-50%,-50%) scale(1.3) translateY(-9px);}100%{transform:translate(-50%,-50%) scale(1);}}
 .pawn-red{background:var(--red);} .pawn-green{background:var(--green);}
 .pawn-yellow{background:var(--yellow);} .pawn-blue{background:var(--blue);}
 
@@ -56,19 +59,29 @@ h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 .room-code{font-size:13px; color:var(--muted);}
 .room-code b{color:var(--ink); font-size:16px; letter-spacing:.08em;}
 .players-list{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
-.player-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:#f8fafc; font-size:14px;}
+.player-row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:10px; background:#f8fafc; font-size:14px;}
 .player-row.active{background:#fffbeb; box-shadow:0 0 0 2px #fde68a inset;}
+.player-row.me{box-shadow:0 0 0 2px var(--ink) inset;}
+.player-row-top{display:flex; align-items:center; gap:10px; flex:1; min-width:0;}
 .dot{width:14px; height:14px; border-radius:50%; flex-shrink:0;}
 .dot-red{background:var(--red);} .dot-green{background:var(--green);}
 .dot-yellow{background:var(--yellow);} .dot-blue{background:var(--blue);}
-.player-row .name{flex:1;}
-.player-row .tag{font-size:11px; color:var(--muted);}
+.player-row .name{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.player-row .tag{font-size:11px; color:var(--muted); flex-shrink:0;}
 
 .dice-area{display:flex; align-items:center; gap:14px; margin-top:6px;}
-#diceFace{
-  width:56px; height:56px; border-radius:12px; background:#fff; border:2px solid var(--ink);
-  display:flex; align-items:center; justify-content:center; font-size:26px; font-weight:700;
+
+.mini-dice{
+  width:32px; height:32px; border-radius:8px; background:#fff; border:2px solid var(--ink);
+  display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+  padding:4px; gap:1.5px; flex-shrink:0;
 }
+.mini-dice.rolling{animation:diceShake .09s linear infinite;}
+.mini-dice.empty{display:flex; align-items:center; justify-content:center;}
+.mini-dice.empty::after{content:'–'; font-size:13px; font-weight:700; color:var(--muted);}
+@keyframes diceShake{0%{transform:rotate(-7deg);}50%{transform:rotate(7deg);}100%{transform:rotate(-7deg);}}
+.pip{border-radius:50%; background:transparent;}
+.pip.on{background:var(--ink);}
 #turnMsg{font-size:14px; font-weight:600; margin-top:4px;}
 
 #log{max-height:180px; overflow-y:auto; font-size:13px; color:var(--muted); display:flex; flex-direction:column-reverse; gap:5px;}

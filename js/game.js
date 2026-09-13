@@ -35,7 +35,15 @@ const BASE_RECT = {
   red:[0,0], green:[0,9], yellow:[9,9], blue:[9,0]
 };
 const BASE_SLOTS = [[1.5,1.5],[1.5,4.5],[4.5,1.5],[4.5,4.5]];
-const CENTER_SLOTS = [[7.15,7.15],[7.15,7.85],[7.85,7.15],[7.85,7.85]];
+// pontos finais de cada cor dentro do SEU PRÓPRIO triângulo no centro
+// (green entra por cima, yellow pela direita, blue por baixo, red pela esquerda)
+const CENTER_PX = 7.5*CELL;
+const CENTER_SLOTS_BY_COLOR = {
+  green:  [[7,-14],[-7,-14],[7,-22],[-7,-22]],
+  yellow: [[14,7],[14,-7],[22,7],[22,-7]],
+  blue:   [[-7,14],[7,14],[-7,22],[7,22]],
+  red:    [[-14,-7],[-14,7],[-22,-7],[-22,7]]
+};
 
 /* ================= ESTADO LOCAL ================= */
 let roomCode = null;
@@ -61,6 +69,60 @@ function defaultState(code){
     log:[],
     updatedAt:Date.now()
   };
+}
+
+/* ================= DADO VISUAL (pips) ================= */
+const DICE_PIPS = {
+  1:[4], 2:[0,8], 3:[0,4,8], 4:[0,2,6,8], 5:[0,2,4,6,8], 6:[0,2,3,5,6,8]
+};
+function renderDiceFace(el,value){
+  if(!el) return;
+  if(!value){
+    el.classList.add('empty');
+    el.innerHTML='';
+    return;
+  }
+  el.classList.remove('empty');
+  const on = DICE_PIPS[value]||[];
+  el.innerHTML='';
+  for(let idx=0; idx<9; idx++){
+    const dot=document.createElement('span');
+    dot.className='pip'+(on.includes(idx)?' on':'');
+    el.appendChild(dot);
+  }
+}
+function animateDiceRoll(onDone){
+  const face = document.getElementById('miniDice-'+myColor);
+  const btn = document.getElementById('rollBtn');
+  btn.disabled = true;
+  if(face) face.classList.add('rolling');
+  let ticks=0;
+  const iv = setInterval(()=>{
+    renderDiceFace(face, 1+Math.floor(Math.random()*6));
+    ticks++;
+    if(ticks>=8){
+      clearInterval(iv);
+      if(face) face.classList.remove('rolling');
+      onDone();
+    }
+  }, 80);
+}
+
+/* ================= ORIENTAÇÃO DO TABULEIRO POR JOGADOR ================= */
+// gira o tabuleiro para que a base do jogador local sempre fique embaixo (canto inferior esquerdo)
+const ROTATE_DEG = {blue:0, yellow:90, green:180, red:270};
+function applyBoardRotation(){
+  const el = document.getElementById('boardRotate');
+  if(!el) return;
+  const deg = myColor ? ROTATE_DEG[myColor] : 0;
+  el.style.transform = 'rotate('+deg+'deg)';
+}
+function viewOrderColors(){
+  if(!myColor) return COLORS.slice();
+  const idx = COLORS.indexOf(myColor);
+  const order=[];
+  for(let i=1;i<=COLORS.length;i++) order.push(COLORS[(idx+i)%COLORS.length]);
+  return order; // termina sempre com myColor (fica embaixo na lista)
 }
 
 function showToast(msg){
@@ -184,20 +246,35 @@ document.getElementById('startBtn').onclick = ()=>{
   });
 };
 
+function performMove(state,color,pawnIndex){
+  const dice = state.dice;
+  const captured = doMove(state,color,pawnIndex,dice);
+  if(state.phase==='finished') return;
+  const extra = dice===6 || captured;
+  state.dice = null;
+  if(!extra){ state.turnColor = nextTurnColor(state); }
+}
+
 document.getElementById('rollBtn').onclick = ()=>{
-  updateRoom(state=>{
-    if(state.phase!=='playing') return;
-    if(state.turnColor!==myColor){ showToast('Não é sua vez'); return; }
-    if(state.dice!==null) return;
-    const d = 1+Math.floor(Math.random()*6);
-    state.dice = d;
-    state.log.unshift(`${COLOR_NAME[myColor]} tirou ${d}`);
-    const vm = validMoves(state,myColor,d);
-    if(vm.length===0){
-      state.log.unshift('Sem jogada possível — passa a vez');
-      state.turnColor = nextTurnColor(state);
-      state.dice = null;
-    }
+  if(!myColor) return;
+  animateDiceRoll(()=>{
+    updateRoom(state=>{
+      if(state.phase!=='playing') return;
+      if(state.turnColor!==myColor){ showToast('Não é sua vez'); return; }
+      if(state.dice!==null) return;
+      const d = 1+Math.floor(Math.random()*6);
+      state.dice = d;
+      state.log.unshift(`${COLOR_NAME[myColor]} tirou ${d}`);
+      const vm = validMoves(state,myColor,d);
+      if(vm.length===0){
+        state.log.unshift('Sem jogada possível — passa a vez');
+        state.turnColor = nextTurnColor(state);
+        state.dice = null;
+      } else if(vm.length===1){
+        // única jogada possível: move automaticamente, sem precisar clicar no peão
+        performMove(state,myColor,vm[0]);
+      }
+    });
   });
 };
 
@@ -208,17 +285,14 @@ function clickPawn(color,pawnIndex){
     if(state.dice===null) return;
     const vm = validMoves(state,myColor,state.dice);
     if(!vm.includes(pawnIndex)) return;
-    const captured = doMove(state,myColor,pawnIndex,state.dice);
-    if(state.phase==='finished') return;
-    const extra = state.dice===6 || captured;
-    state.dice = null;
-    if(!extra){ state.turnColor = nextTurnColor(state); }
+    performMove(state,myColor,pawnIndex);
   });
 }
 
 document.getElementById('leaveBtn').onclick = ()=>{
   clearInterval(pollTimer);
   roomCode=null; myColor=null;
+  resetPawnLayer();
   document.getElementById('gameScreen').style.display='none';
   document.getElementById('entryScreen').style.display='block';
 };
@@ -228,6 +302,7 @@ function enterGameScreen(state){
   document.getElementById('entryScreen').style.display='none';
   document.getElementById('gameScreen').style.display='flex';
   document.getElementById('roomCodeLabel').textContent = state.code;
+  resetPawnLayer();
   drawBoardStatic();
   render(state);
   pollTimer = setInterval(async ()=>{
@@ -264,26 +339,29 @@ function render(state){
     // recover local color if this client already claimed one
     COLORS.forEach(c=>{ if(state.players[c]===myName) myColor=c; });
   }
+  applyBoardRotation();
 
   const filledCount = COLORS.filter(c=>state.players[c]).length;
   document.getElementById('startBtn').style.display = (state.phase==='lobby' && filledCount>=2) ? 'block':'none';
   document.getElementById('lobbyBox').style.display = state.phase==='lobby' ? 'block':'none';
   document.getElementById('playBox').style.display = state.phase==='lobby' ? 'none':'block';
 
-  // --- lista de jogadores ---
+  // --- lista de jogadores (minha cor sempre por último / embaixo) ---
   const list = document.getElementById('playersList');
   list.innerHTML='';
-  COLORS.forEach(c=>{
+  viewOrderColors().forEach(c=>{
     if(!state.players[c]) return;
+    const isMe = state.players[c]===myName;
     const row=document.createElement('div');
-    row.className='player-row'+(state.turnColor===c?' active':'');
-    row.innerHTML = `<span class="dot dot-${c}"></span><span class="name">${state.players[c]}</span>` +
-      (state.players[c]===myName?'<span class="tag">você</span>':'');
+    row.className='player-row'+(state.turnColor===c?' active':'')+(isMe?' me':'');
+    row.innerHTML = `<div class="player-row-top"><span class="dot dot-${c}"></span><span class="name">${state.players[c]}</span>` +
+      (isMe?'<span class="tag">você</span>':'') + `</div>` +
+      `<div class="mini-dice" id="miniDice-${c}"></div>`;
     list.appendChild(row);
+    renderDiceFace(document.getElementById('miniDice-'+c), state.turnColor===c ? state.dice : null);
   });
 
-  // --- dado / turno ---
-  document.getElementById('diceFace').textContent = state.dice ?? '–';
+  // --- turno ---
   const turnMsg = document.getElementById('turnMsg');
   const hint = document.getElementById('hintMsg');
   const rollBtn = document.getElementById('rollBtn');
@@ -372,8 +450,8 @@ function drawBoardStatic(){
   }
   tri(tl,tr,[cx,cy],COLOR_HEX.green);
   tri(tr,br,[cx,cy],COLOR_HEX.yellow);
-  tri(br,bl,[cx,cy],COLOR_HEX.red);
-  tri(bl,tl,[cx,cy],COLOR_HEX.blue);
+  tri(br,bl,[cx,cy],COLOR_HEX.blue);
+  tri(bl,tl,[cx,cy],COLOR_HEX.red);
   ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(x0,y0,x1-x0,y1-y0);
 
   // borda externa
@@ -393,39 +471,88 @@ function drawStar(ctx,cx,cy,r,color){
 /* ================= DESENHO DOS PEÕES (divs sobre o canvas) ================= */
 function cellPixel(row,col){ return [(col+0.5)*CELL, (row+0.5)*CELL]; }
 
+function pawnStepsPixel(color,i,steps){
+  if(steps>=57){
+    // peão terminado: fica dentro do próprio triângulo da cor, sem jitter extra
+    const [ox,oy] = CENTER_SLOTS_BY_COLOR[color][i];
+    return [CENTER_PX+ox, CENTER_PX+oy];
+  }
+  let x,y;
+  if(steps===0){
+    const [r0,c0]=BASE_RECT[color];
+    const [dr,dc]=BASE_SLOTS[i];
+    [x,y]=[(c0+dc)*CELL,(r0+dr)*CELL];
+  } else if(steps>=1 && steps<=51){
+    const abs=(START_INDEX[color]+steps-1)%52;
+    [x,y]=cellPixel(PATH[abs][0],PATH[abs][1]);
+  } else {
+    const [r,c]=HOME_STRETCH[color][steps-52];
+    [x,y]=cellPixel(r,c);
+  }
+  // pequeno jitter para não sobrepor totalmente peões na mesma célula
+  const jx = ((i%2)*8-4), jy=(Math.floor(i/2)*8-4);
+  return [x+jx, y+jy];
+}
+
+let pawnEls = {};
+let prevPawnsSnapshot = null;
+function pawnKey(color,i){ return color+'_'+i; }
+function resetPawnLayer(){
+  document.getElementById('pawnLayer').innerHTML='';
+  pawnEls = {};
+  prevPawnsSnapshot = null;
+}
+function delay(ms){ return new Promise(res=>setTimeout(res,ms)); }
+
+async function hopPawn(el,color,i,fromSteps,toSteps){
+  const seq = fromSteps===0 ? [1] : [];
+  if(fromSteps>0){ for(let s=fromSteps+1; s<=toSteps; s++) seq.push(s); }
+  for(const s of seq){
+    const [x,y] = pawnStepsPixel(color,i,s);
+    el.classList.add('hopping');
+    el.style.left = x+'px';
+    el.style.top = y+'px';
+    await delay(190);
+    el.classList.remove('hopping');
+  }
+}
+
 function drawPawns(state){
   const layer = document.getElementById('pawnLayer');
-  layer.innerHTML='';
   const isMyTurn = state.phase==='playing' && state.turnColor===myColor && state.dice!==null;
   const vm = isMyTurn ? validMoves(state,myColor,state.dice) : [];
+  const isFirst = prevPawnsSnapshot===null;
 
   COLORS.forEach(color=>{
     state.pawns[color].forEach((steps,i)=>{
-      let x,y;
-      if(steps===0){
-        const [r0,c0]=BASE_RECT[color];
-        const [dr,dc]=BASE_SLOTS[i];
-        [x,y]=[(c0+dc)*CELL,(r0+dr)*CELL];
-      } else if(steps>=1 && steps<=51){
-        const abs=(START_INDEX[color]+steps-1)%52;
-        [x,y]=cellPixel(PATH[abs][0],PATH[abs][1]);
-      } else if(steps>=52 && steps<=56){
-        const [r,c]=HOME_STRETCH[color][steps-52];
-        [x,y]=cellPixel(r,c);
-      } else {
-        const [dr,dc]=CENTER_SLOTS[i];
-        [x,y]=[dr*CELL,dc*CELL];
+      const key = pawnKey(color,i);
+      let el = pawnEls[key];
+      if(!el){
+        el = document.createElement('div');
+        el.className = 'pawn pawn-'+color;
+        layer.appendChild(el);
+        pawnEls[key] = el;
+        const [x,y] = pawnStepsPixel(color,i,steps);
+        el.style.left = x+'px';
+        el.style.top = y+'px';
       }
-      // pequeno jitter para não sobrepor totalmente peões na mesma célula
-      const jx = ((i%2)*8-4), jy=(Math.floor(i/2)*8-4);
-      const div=document.createElement('div');
-      div.className='pawn pawn-'+color + ((isMyTurn && color===myColor && vm.includes(i)) ? ' movable':'');
-      div.style.left=(x+jx)+'px';
-      div.style.top=(y+jy)+'px';
-      if(isMyTurn && color===myColor && vm.includes(i)){
-        div.onclick=()=>clickPawn(color,i);
+
+      const movable = isMyTurn && color===myColor && vm.includes(i);
+      el.classList.toggle('movable', movable);
+      el.onclick = movable ? ()=>clickPawn(color,i) : null;
+
+      const prevSteps = isFirst ? steps : prevPawnsSnapshot[color][i];
+      if(!isFirst && prevSteps!==steps){
+        if(steps>prevSteps){
+          hopPawn(el,color,i,prevSteps,steps);
+        } else {
+          const [x,y] = pawnStepsPixel(color,i,steps);
+          el.style.left = x+'px';
+          el.style.top = y+'px';
+        }
       }
-      layer.appendChild(div);
     });
   });
+
+  prevPawnsSnapshot = JSON.parse(JSON.stringify(state.pawns));
 }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Ludo Online</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="entryScreen" class="card">
+  <h1>🎲 Ludo Online</h1>
+  <p class="sub">Jogue com amigos usando um código de sala.</p>
+  <input id="nameInput" placeholder="Seu nome" maxlength="16">
+  <button class="btn btn-primary" id="createBtn">Criar nova sala</button>
+  <div class="divider">ou entre em uma sala</div>
+  <div class="row">
+    <input id="codeInput" placeholder="Código da sala" maxlength="5" style="text-transform:uppercase;">
+    <button class="btn btn-outline" id="joinBtn">Entrar</button>
+  </div>
+  <p class="footnote">Os dados da sala ficam visíveis para qualquer pessoa que usar o mesmo código — é assim que a sincronização entre navegadores funciona.</p>
+</div>
+
+<div id="gameScreen">
+  <div id="boardWrap">
+    <canvas id="board" width="600" height="600"></canvas>
+    <div id="pawnLayer"></div>
+  </div>
+  <div id="sidebar" class="card">
+    <div class="room-code">Sala: <b id="roomCodeLabel"></b></div>
+    <div id="lobbyBox">
+      <p class="sub" style="margin-top:10px;">Escolha sua cor:</p>
+      <div class="color-pick" id="colorPick"></div>
+      <button class="btn btn-primary" id="startBtn" style="margin-top:14px; display:none;">Iniciar jogo</button>
+    </div>
+    <div id="playBox" style="display:none;">
+      <div class="players-list" id="playersList"></div>
+      <div id="turnMsg"></div>
+      <div class="dice-area">
+        <div id="diceFace">–</div>
+        <button class="btn btn-primary" id="rollBtn" style="flex:1;">Rolar dado</button>
+      </div>
+      <p class="footnote" id="hintMsg"></p>
+    </div>
+    <div class="divider" style="margin:12px 0 8px;">histórico</div>
+    <div id="log"></div>
+    <button class="btn btn-outline" id="leaveBtn" style="margin-top:6px;">Sair da sala</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/game.js"></script>
+</body>
+</html>

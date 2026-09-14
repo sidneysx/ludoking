@@ -11,6 +11,7 @@ body{
   background:var(--bg); color:var(--ink); min-height:100vh;
   display:flex; align-items:flex-start; justify-content:center; padding:24px;
 }
+body.has-actionbar{padding-bottom:132px;}
 h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 .sub{color:var(--muted); font-size:14px; margin:0 0 20px;}
 .card{
@@ -37,8 +38,13 @@ h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 .row{display:flex; gap:10px;}
 .row input{flex:1;}
 
-#gameScreen{display:none; gap:20px; align-items:flex-start; flex-wrap:wrap; justify-content:center;}
-#boardWrap{position:relative; width:600px; height:600px; flex-shrink:0; border-radius:12px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.1), 0 12px 30px rgba(0,0,0,.1);}
+#gameScreen{display:none; flex-direction:column; align-items:stretch; gap:16px; width:100%; max-width:460px; margin:0 auto;}
+#boardWrap{
+  position:relative; width:100%; max-width:460px; aspect-ratio:1/1;
+  flex-shrink:0; border-radius:12px; overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.1), 0 12px 30px rgba(0,0,0,.1);
+}
+#boardScale{position:absolute; top:0; left:0; width:600px; height:600px; transform-origin:0 0;}
 #boardRotate{position:absolute; top:0; left:0; width:600px; height:600px; transition:transform .5s ease;}
 #board{position:absolute; top:0; left:0;}
 #pawnLayer{position:absolute; top:0; left:0; width:600px; height:600px;}
@@ -55,7 +61,7 @@ h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 .pawn-red{background:var(--red);} .pawn-green{background:var(--green);}
 .pawn-yellow{background:var(--yellow);} .pawn-blue{background:var(--blue);}
 
-#sidebar{width:300px; flex-shrink:0; display:flex; flex-direction:column; gap:14px;}
+#sidebar{width:100%; display:flex; flex-direction:column; gap:14px;}
 .room-code{font-size:13px; color:var(--muted);}
 .room-code b{color:var(--ink); font-size:16px; letter-spacing:.08em;}
 .players-list{display:flex; flex-direction:column; gap:8px; margin-top:10px;}
@@ -103,3 +109,21 @@ h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 }
 .toast.show{opacity:1;}
 .footnote{font-size:11.5px; color:var(--muted); margin-top:4px;}
+
+/* dado / ação sempre fixo na parte de baixo da tela */
+#actionBar{
+  display:none;
+  position:fixed; left:0; right:0; bottom:0; margin:0 auto;
+  width:100%; max-width:460px; box-sizing:border-box;
+  background:var(--card);
+  border-radius:16px 16px 0 0;
+  box-shadow:0 -2px 3px rgba(0,0,0,.06), 0 -8px 24px rgba(0,0,0,.08);
+  padding:12px 20px calc(12px + env(safe-area-inset-bottom));
+  z-index:50;
+}
+body.has-actionbar #actionBar{display:block;}
+#actionBar .dice-area{margin-top:6px;}
+
+@media (max-width:500px){
+  body{padding:14px 14px 24px;}
+}

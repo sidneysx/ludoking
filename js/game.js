@@ -108,6 +108,16 @@ function animateDiceRoll(onDone){
   }, 80);
 }
 
+/* ================= ESCALA RESPONSIVA DO TABULEIRO ================= */
+function applyBoardScale(){
+  const wrap = document.getElementById('boardWrap');
+  const scaleEl = document.getElementById('boardScale');
+  if(!wrap || !scaleEl) return;
+  const s = wrap.clientWidth/600;
+  if(s>0) scaleEl.style.transform = 'scale('+s+')';
+}
+window.addEventListener('resize', applyBoardScale);
+
 /* ================= ORIENTAÇÃO DO TABULEIRO POR JOGADOR ================= */
 // gira o tabuleiro para que a base do jogador local sempre fique embaixo (canto inferior esquerdo)
 const ROTATE_DEG = {blue:0, yellow:90, green:180, red:270};
@@ -293,6 +303,7 @@ document.getElementById('leaveBtn').onclick = ()=>{
   clearInterval(pollTimer);
   roomCode=null; myColor=null;
   resetPawnLayer();
+  document.body.classList.remove('has-actionbar');
   document.getElementById('gameScreen').style.display='none';
   document.getElementById('entryScreen').style.display='block';
 };
@@ -304,6 +315,7 @@ function enterGameScreen(state){
   document.getElementById('roomCodeLabel').textContent = state.code;
   resetPawnLayer();
   drawBoardStatic();
+  applyBoardScale();
   render(state);
   pollTimer = setInterval(async ()=>{
     if(!roomCode) return;
@@ -345,6 +357,7 @@ function render(state){
   document.getElementById('startBtn').style.display = (state.phase==='lobby' && filledCount>=2) ? 'block':'none';
   document.getElementById('lobbyBox').style.display = state.phase==='lobby' ? 'block':'none';
   document.getElementById('playBox').style.display = state.phase==='lobby' ? 'none':'block';
+  document.body.classList.toggle('has-actionbar', state.phase!=='lobby');
 
   // --- lista de jogadores (minha cor sempre por último / embaixo) ---
   const list = document.getElementById('playersList');

@@ -2,8 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ludo Online</title>
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=6">
 </head>
 <body>
 
@@ -22,9 +23,11 @@
 
 <div id="gameScreen">
   <div id="boardWrap">
-    <div id="boardRotate">
-      <canvas id="board" width="600" height="600"></canvas>
-      <div id="pawnLayer"></div>
+    <div id="boardScale">
+      <div id="boardRotate">
+        <canvas id="board" width="600" height="600"></canvas>
+        <div id="pawnLayer"></div>
+      </div>
     </div>
   </div>
   <div id="sidebar" class="card">
@@ -36,11 +39,6 @@
     </div>
     <div id="playBox" style="display:none;">
       <div class="players-list" id="playersList"></div>
-      <div id="turnMsg"></div>
-      <div class="dice-area">
-        <button class="btn btn-primary" id="rollBtn" style="flex:1;">Rolar dado</button>
-      </div>
-      <p class="footnote" id="hintMsg"></p>
     </div>
     <div class="divider" style="margin:12px 0 8px;">histórico</div>
     <div id="log"></div>
@@ -48,8 +46,16 @@
   </div>
 </div>
 
+<div id="actionBar">
+  <div id="turnMsg"></div>
+  <div class="dice-area">
+    <button class="btn btn-primary" id="rollBtn" style="flex:1;">Rolar dado</button>
+  </div>
+  <p class="footnote" id="hintMsg"></p>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script src="js/game.js?v=4"></script>
+<script src="js/game.js?v=5"></script>
 </body>
 </html>

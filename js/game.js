@@ -94,27 +94,63 @@ function renderDiceFace(el,value){
     el.appendChild(dot);
   }
 }
-function animateDiceRoll(onDone){
-  const face = document.getElementById('miniDice-'+myColor);
-  const btn = document.getElementById('rollBtn');
-  btn.disabled = true;
-  if(face) face.classList.add('rolling');
-  const totalTicks = 12;
-  let tick = 0;
-  function step(){
-    renderDiceFace(face, 1+Math.floor(Math.random()*6));
-    tick++;
-    if(tick>=totalTicks){
-      if(face) face.classList.remove('rolling');
-      onDone();
-      return;
+/* ================= DADO 3D (cubo real girando) ================= */
+// mapeia cada valor pra rotação do cubo que traz aquela face pra frente da câmera
+// (inverso da rotação de cada face .fN definida no CSS)
+const DICE3D_FACE_ROT = {
+  1:{x:0,y:0}, 2:{x:90,y:0}, 3:{x:0,y:-90},
+  4:{x:0,y:90}, 5:{x:-90,y:0}, 6:{x:0,y:180}
+};
+let dice3dRot = {x:0,y:0};
+let dice3dShownValue = null;
+
+function buildDice3D(){
+  const cube = document.getElementById('dice3d');
+  if(!cube) return;
+  cube.innerHTML='';
+  for(let v=1; v<=6; v++){
+    const face = document.createElement('div');
+    face.className = 'dice3d-face f'+v;
+    const on = DICE_PIPS[v]||[];
+    for(let idx=0; idx<9; idx++){
+      const dot=document.createElement('span');
+      dot.className='pip'+(on.includes(idx)?' on':'');
+      face.appendChild(dot);
     }
-    // desacelera aos poucos, do rápido ao lento, pra parecer um giro de verdade
-    const progress = tick/totalTicks;
-    const nextDelay = 90 + progress*220;
-    setTimeout(step, nextDelay);
+    cube.appendChild(face);
   }
-  setTimeout(step, 90);
+}
+buildDice3D();
+
+// gira o cubo até mostrar `value`, sempre avançando (nunca volta), com voltas
+// extras aleatórias quando `spin` é true pra parecer um giro de verdade
+function rotateDice3DTo(value, spin){
+  const cube = document.getElementById('dice3d');
+  if(!cube) return Promise.resolve();
+  const target = DICE3D_FACE_ROT[value];
+  const curXmod = ((dice3dRot.x%360)+360)%360;
+  const curYmod = ((dice3dRot.y%360)+360)%360;
+  let dx = target.x-curXmod; if(dx<0) dx+=360;
+  let dy = target.y-curYmod; if(dy<0) dy+=360;
+  const spinsX = spin ? 360*(2+Math.floor(Math.random()*2)) : 0;
+  const spinsY = spin ? 360*(3+Math.floor(Math.random()*2)) : 0;
+  dice3dRot = {x:dice3dRot.x+spinsX+dx, y:dice3dRot.y+spinsY+dy};
+  cube.style.transitionDuration = spin ? '1.2s' : '0.5s';
+  cube.style.transform = `rotateX(${dice3dRot.x}deg) rotateY(${dice3dRot.y}deg)`;
+  dice3dShownValue = value;
+  return new Promise(resolve=>{
+    let done=false;
+    function finish(){ if(done) return; done=true; cube.removeEventListener('transitionend',onEnd); resolve(); }
+    function onEnd(e){ if(e.propertyName==='transform') finish(); }
+    cube.addEventListener('transitionend', onEnd);
+    setTimeout(finish, spin ? 1350 : 600); // fallback, caso transitionend não dispare
+  });
+}
+// mantém o dado 3D mostrando o último valor sincronizado da sala (pros outros jogadores verem)
+function syncDice3DFromState(state, busy){
+  if(busy) return;
+  if(!state.lastDice || state.lastDice===dice3dShownValue) return;
+  rotateDice3DTo(state.lastDice, false);
 }
 
 /* ================= ESCALA RESPONSIVA DO TABULEIRO ================= */
@@ -278,14 +314,19 @@ function performMove(state,color,pawnIndex){
   if(!extra){ state.turnColor = nextTurnColor(state); }
 }
 
+let dice3dBusy = false;
 document.getElementById('rollBtn').onclick = ()=>{
-  if(!myColor) return;
-  animateDiceRoll(()=>{
+  if(!myColor || dice3dBusy) return;
+  const btn = document.getElementById('rollBtn');
+  const d = 1+Math.floor(Math.random()*6);
+  dice3dBusy = true;
+  btn.disabled = true;
+  rotateDice3DTo(d, true).then(()=>{
+    dice3dBusy = false;
     updateRoom(state=>{
       if(state.phase!=='playing') return;
       if(state.turnColor!==myColor){ showToast('Não é sua vez'); return; }
       if(state.dice!==null) return;
-      const d = 1+Math.floor(Math.random()*6);
       state.dice = d;
       state.lastDice = d;
       state.lastDiceColor = myColor;
@@ -405,6 +446,7 @@ function render(state){
     // mostra o último número tirado por essa cor até que outra pessoa role o dado
     renderDiceFace(document.getElementById('miniDice-'+c), state.lastDiceColor===c ? state.lastDice : null);
   });
+  syncDice3DFromState(state, dice3dBusy);
 
   // --- turno ---
   const turnMsg = document.getElementById('turnMsg');

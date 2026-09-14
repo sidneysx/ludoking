@@ -77,15 +77,34 @@ h1{font-size:22px; margin:0 0 4px; letter-spacing:-0.01em;}
 
 .dice-area{display:flex; align-items:center; gap:14px; margin-top:6px;}
 
+.dice3d-wrap{width:58px; height:58px; perspective:320px; flex-shrink:0;}
+.dice3d{
+  position:relative; width:58px; height:58px; transform-style:preserve-3d;
+  transition:transform 1.2s cubic-bezier(.17,.67,.32,1.02);
+  transform:rotateX(0deg) rotateY(0deg);
+}
+.dice3d-face{
+  position:absolute; top:0; left:0; width:58px; height:58px; box-sizing:border-box;
+  background:#fff; border:2.5px solid var(--ink); border-radius:12px;
+  display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
+  padding:8px; gap:3px; backface-visibility:hidden;
+}
+.dice3d-face .pip{border-radius:50%; background:transparent;}
+.dice3d-face .pip.on{background:var(--ink);}
+.dice3d-face.f1{transform:rotateY(0deg) translateZ(29px);}
+.dice3d-face.f6{transform:rotateY(180deg) translateZ(29px);}
+.dice3d-face.f3{transform:rotateY(90deg) translateZ(29px);}
+.dice3d-face.f4{transform:rotateY(-90deg) translateZ(29px);}
+.dice3d-face.f2{transform:rotateX(-90deg) translateZ(29px);}
+.dice3d-face.f5{transform:rotateX(90deg) translateZ(29px);}
+
 .mini-dice{
   width:32px; height:32px; border-radius:8px; background:#fff; border:2px solid var(--ink);
   display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr);
   padding:4px; gap:1.5px; flex-shrink:0;
 }
-.mini-dice.rolling{animation:diceShake .09s linear infinite;}
 .mini-dice.empty{display:flex; align-items:center; justify-content:center;}
 .mini-dice.empty::after{content:'–'; font-size:13px; font-weight:700; color:var(--muted);}
-@keyframes diceShake{0%{transform:rotate(-7deg);}50%{transform:rotate(7deg);}100%{transform:rotate(-7deg);}}
 .pip{border-radius:50%; background:transparent;}
 .pip.on{background:var(--ink);}
 #turnMsg{font-size:14px; font-weight:600; margin-top:4px;}

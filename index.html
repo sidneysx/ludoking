@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Ludo Online</title>
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
 
@@ -40,6 +40,14 @@
     <div id="playBox" style="display:none;">
       <div class="players-list" id="playersList"></div>
     </div>
+    <div class="divider" style="margin:12px 0 8px;">chat</div>
+    <div id="chatBox">
+      <div id="chatMessages"></div>
+      <div class="row" style="margin-top:8px;">
+        <input id="chatInput" placeholder="Mensagem..." maxlength="200">
+        <button class="btn btn-outline" id="chatSendBtn">Enviar</button>
+      </div>
+    </div>
     <div class="divider" style="margin:12px 0 8px;">histórico</div>
     <div id="log"></div>
     <button class="btn btn-outline" id="leaveBtn" style="margin-top:6px;">Sair da sala</button>
@@ -56,6 +64,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/game.js?v=5"></script>
+<script src="js/game.js?v=6"></script>
 </body>
 </html>

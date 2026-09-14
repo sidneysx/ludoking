@@ -64,9 +64,12 @@ function defaultState(code){
     phase:'lobby', // lobby | playing | finished
     turnColor:null,
     dice:null,
+    lastDice:null,
+    lastDiceColor:null,
     pawns:{red:[0,0,0,0],green:[0,0,0,0],yellow:[0,0,0,0],blue:[0,0,0,0]},
     winner:null,
     log:[],
+    chat:[],
     updatedAt:Date.now()
   };
 }
@@ -96,16 +99,22 @@ function animateDiceRoll(onDone){
   const btn = document.getElementById('rollBtn');
   btn.disabled = true;
   if(face) face.classList.add('rolling');
-  let ticks=0;
-  const iv = setInterval(()=>{
+  const totalTicks = 12;
+  let tick = 0;
+  function step(){
     renderDiceFace(face, 1+Math.floor(Math.random()*6));
-    ticks++;
-    if(ticks>=8){
-      clearInterval(iv);
+    tick++;
+    if(tick>=totalTicks){
       if(face) face.classList.remove('rolling');
       onDone();
+      return;
     }
-  }, 80);
+    // desacelera aos poucos, do rápido ao lento, pra parecer um giro de verdade
+    const progress = tick/totalTicks;
+    const nextDelay = 90 + progress*220;
+    setTimeout(step, nextDelay);
+  }
+  setTimeout(step, 90);
 }
 
 /* ================= ESCALA RESPONSIVA DO TABULEIRO ================= */
@@ -133,6 +142,10 @@ function viewOrderColors(){
   const order=[];
   for(let i=1;i<=COLORS.length;i++) order.push(COLORS[(idx+i)%COLORS.length]);
   return order; // termina sempre com myColor (fica embaixo na lista)
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
 
 function showToast(msg){
@@ -274,6 +287,8 @@ document.getElementById('rollBtn').onclick = ()=>{
       if(state.dice!==null) return;
       const d = 1+Math.floor(Math.random()*6);
       state.dice = d;
+      state.lastDice = d;
+      state.lastDiceColor = myColor;
       state.log.unshift(`${COLOR_NAME[myColor]} tirou ${d}`);
       const vm = validMoves(state,myColor,d);
       if(vm.length===0){
@@ -298,6 +313,22 @@ function clickPawn(color,pawnIndex){
     performMove(state,myColor,pawnIndex);
   });
 }
+
+function sendChatMessage(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || !roomCode) return;
+  input.value='';
+  updateRoom(state=>{
+    if(!state.chat) state.chat=[];
+    state.chat.push({color:myColor, name:myName, text, at:Date.now()});
+    if(state.chat.length>50) state.chat = state.chat.slice(-50);
+  });
+}
+document.getElementById('chatSendBtn').onclick = sendChatMessage;
+document.getElementById('chatInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); }
+});
 
 document.getElementById('leaveBtn').onclick = ()=>{
   clearInterval(pollTimer);
@@ -371,7 +402,8 @@ function render(state){
       (isMe?'<span class="tag">você</span>':'') + `</div>` +
       `<div class="mini-dice" id="miniDice-${c}"></div>`;
     list.appendChild(row);
-    renderDiceFace(document.getElementById('miniDice-'+c), state.turnColor===c ? state.dice : null);
+    // mostra o último número tirado por essa cor até que outra pessoa role o dado
+    renderDiceFace(document.getElementById('miniDice-'+c), state.lastDiceColor===c ? state.lastDice : null);
   });
 
   // --- turno ---
@@ -390,6 +422,15 @@ function render(state){
       hint.textContent = 'Clique em um peão destacado para mover.';
     } else { hint.textContent=''; }
   }
+
+  // --- chat ---
+  const chatMessages = document.getElementById('chatMessages');
+  chatMessages.innerHTML = (state.chat||[]).map(m=>{
+    const isMe = m.name===myName && m.color===myColor;
+    const colorHex = m.color && COLOR_HEX[m.color] ? COLOR_HEX[m.color] : 'var(--ink)';
+    return `<div class="chat-msg${isMe?' me':''}"><span class="chat-name" style="color:${colorHex}">${escapeHtml(m.name)}</span>${escapeHtml(m.text)}</div>`;
+  }).join('');
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 
   // --- log ---
   const log = document.getElementById('log');
